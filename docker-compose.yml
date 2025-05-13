@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      - CLICKHOUSE_DB=default
+      - CLICKHOUSE_USER=mluser
+      - CLICKHOUSE_PASSWORD=superpass
+    healthcheck:
+      test: wget --spider -q http://localhost:8123/ping || exit 1
+      interval: 10s
+      retries: 5
+
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data_pipeline
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1

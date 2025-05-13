@@ -28,5 +28,15 @@ class Config:
     
     def get_spark_config(self) -> Dict[str, Any]:
         return {
-            "spark.driver.memory": self.config.get("spark", "spark.driver.memory")
+            "spark.driver.memory": self.config.get("spark", "spark.driver.memory"),
+            "spark.jars": self.config.get("spark", "spark.jars"),
         }
+    
+    def get_clickhouse_config(self) -> Dict[str, Any]:
+        return {
+            'jdbc_url': self.config.get('clickhouse', 'jdbc_url'),
+            'table_name': self.config.get('clickhouse', 'table_name'),
+            'user': self.config.get('clickhouse', 'user'),
+            'password': self.config.get('clickhouse', 'password'),
+            'driver': self.config.get('clickhouse', 'driver')
+    }
