@@ -1,3 +1,5 @@
+# src/config.py
+
 import configparser
 from pathlib import Path
 from typing import Any, Dict
@@ -38,5 +40,7 @@ class Config:
             'table_name': self.config.get('clickhouse', 'table_name'),
             'user': self.config.get('clickhouse', 'user'),
             'password': self.config.get('clickhouse', 'password'),
-            'driver': self.config.get('clickhouse', 'driver')
+            'driver': self.config.get('clickhouse', 'driver'),
+            'host': self.config.get('clickhouse', 'host'),
+            'port': self.config.get('clickhouse', 'port'),
     }

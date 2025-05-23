@@ -1,7 +1,10 @@
+# src/pipeline.py
+
 from pyspark.sql import SparkSession
 from src.config import Config
 from src.logger import Logger
 from src.preprocessor import Preprocessor
+from src.clickhouseclient import ClickHouseClient
 from clickhouse_connect import get_client
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.clustering import KMeans
@@ -52,46 +55,10 @@ class Pipeline:
         )
 
         # clickhouse client
-        self.client = get_client(host='clickhouse', port=8123, username='mluser', password='superpass')
+        self.client = ClickHouseClient(self.spark)
 
     def preprocess_raw_data(self):
         return self.preprocessor.preprocess()
-    
-    def save_data_clickhouse(self, df):
-        pdf = df.toPandas()
-        pdf.columns = [col.replace('-', '_') for col in pdf.columns]
-        self.client.command("""
-            CREATE TABLE IF NOT EXISTS food_features (
-                energy_kcal_100g Float32,
-                fat_100g Float32,
-                saturated_fat_100g Float32,
-                carbohydrates_100g Float32,
-                sugars_100g Float32,
-                proteins_100g Float32,
-                fiber_100g Float32,
-                salt_100g Float32
-            ) ENGINE = MergeTree()
-            ORDER BY tuple()
-        """)
-        self.client.command("TRUNCATE TABLE food_features")
-        self.client.insert_df('food_features', pdf)
-        self.Logger.info('data saved to clickhouse')
-
-    def read_data_from_clickhouse(self):
-        config = self.config.get_clickhouse_config()
-
-        df_clickhouse = self.spark.read \
-            .format("jdbc") \
-            .option("url", config['jdbc_url']) \
-            .option("dbtable", config['table_name']) \
-            .option("user", config['user']) \
-            .option("password", config['password']) \
-            .option("driver", config['driver']) \
-            .load()
-    
-        self.Logger.info('data from clickhouse read')
-    
-        return df_clickhouse
     
     def clasterize(self, df):
         features = [col.replace('-', '_') for col in self.features]
@@ -143,8 +110,8 @@ class Pipeline:
 
     def start(self):
         df = self.preprocess_raw_data()
-        self.save_data_clickhouse(df)
-        df = self.read_data_from_clickhouse()
+        self.client.save_data_clickhouse(df)
+        df = self.client.read_data_from_clickhouse()
         kmeans_model, predictions = self.clasterize(df)
         self.metrics(kmeans_model, predictions)
         self.Logger.info('pipeline finished')
